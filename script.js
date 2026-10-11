@@ -2,189 +2,76 @@ let mode = '';
 let players = [];
 let males = [];
 let females = [];
-let team1Name = 'Team 1';
-let team2Name = 'Team 2';
-let playerQueue = [];
-let team1Queue = [];
-let team2Queue = [];
-let nextTeamIndex = 0;
-let selectedPlayer = null;
+let currentRotation = 0;
 let canOpenBox = true;
-let soundEnabled = true;
-let audioContext;
-let timerInterval;
-let resultRecorded = false;
-let spinInterval;
-let isSpinning = false;
-let matchRound = 0;
-let team1Score = 0;
-let team2Score = 0;
-const totalMatchRounds = 16;
+let playerQueue = [];
+let maleQueue = [];
+let femaleQueue = [];
+let challengeQueue = [];
+let selectedChallenge = null;
+let selectedPlayerNames = [];
+const excludedPlayers = new Map();
 
 // --- DUAL CHALLENGE LISTS ---
 const singleChallenges = [
-    "Sing a song", "Do 10 push-ups", "Tell a secret", 
-    "Dance for 30 seconds", "Imitate someone in the group",
-    "Say a tongue twister", "Do a funny pose", "Draw something blindfolded",
-    "Hop on one foot", "Spin 3 times", "Make a funny face",
-    "Recite an alphabet backward", "Act like an animal", "Whistle a tune",
-    "Clap 10 times", "Do 5 squats", "Pretend to be a robot",
-    "Say a joke", "Do a silly walk", "Make an animal sound"
+    { text: "Sing a song", shots: 1 }, { text: "Do 10 push-ups", shots: 1 }, { text: "Tell a secret", shots: 1 },
+    { text: "Dance for 30 seconds", shots: 1 }, { text: "Imitate someone in the group", shots: 1 },
+    { text: "Say a tongue twister", shots: 1 }, { text: "Do a funny pose", shots: 1 }, { text: "Draw something blindfolded", shots: 2 },
+    { text: "Hop on one foot", shots: 1 }, { text: "Spin 3 times", shots: 1 }, { text: "Make a funny face", shots: 1 },
+    { text: "Recite an alphabet backward", shots: 2 }, { text: "Act like an animal", shots: 1 }, { text: "Whistle a tune", shots: 1 },
+    { text: "Clap 10 times", shots: 1 }, { text: "Do 5 squats", shots: 1 }, { text: "Pretend to be a robot", shots: 1 },
+    { text: "Say a joke", shots: 1 }, { text: "Do a silly walk", shots: 1 }, { text: "Make an animal sound", shots: 1 },
+    { text: "Balance a book on your head", shots: 1 }, { text: "Name five fruits", shots: 1 }, { text: "Speak in a whisper for one minute", shots: 1 },
+    { text: "Do a dramatic reading", shots: 1 }, { text: "Make up a short poem", shots: 1 }, { text: "March in place for 20 seconds", shots: 1 },
+    { text: "Name three movie titles", shots: 1 }, { text: "Draw a star in the air", shots: 1 }, { text: "Pretend to be a news reporter", shots: 1 },
+    { text: "Tell a harmless embarrassing story", shots: 1 }, { text: "Do your best superhero pose", shots: 1 }, { text: "Name four animals that swim", shots: 1 },
+    { text: "Hold a statue pose for 30 seconds", shots: 1 }, { text: "Spell your name backward", shots: 2 }, { text: "Make a sound effect for a car", shots: 1 },
+    { text: "Give the group a compliment", shots: 1 }, { text: "Pretend to host a cooking show", shots: 1 }, { text: "Do five slow knee lifts", shots: 1 },
+    { text: "Name three songs by one artist", shots: 1 }, { text: "Create a new handshake", shots: 1 }, { text: "Act out a sport without speaking", shots: 1 },
+    { text: "Say the alphabet with a funny voice", shots: 1 }, { text: "Describe an object without naming it", shots: 1 }, { text: "Do a slow-motion celebration", shots: 1 },
+    { text: "Name five colors", shots: 1 }, { text: "Pretend to answer an imaginary phone", shots: 1 }, { text: "Make up a team motto", shots: 1 },
+    { text: "Do ten shoulder rolls", shots: 1 }, { text: "Tell the group your favorite snack", shots: 1 },
+    { text: "Make up a silly slogan", shots: 1 }
 ];
 
-const funChallenges = [
-    "Talk like a robot for 30 seconds", "Do your funniest dance", "Tell a silly joke",
-    "Make three animal sounds", "Walk like a crab across the room", "Pull your funniest face",
-    "Pretend you are a superhero", "Sing the chorus of a happy song", "Do 5 star jumps",
-    "Balance a book on your head", "Act like a slow-motion movie star", "Say the alphabet dramatically",
-    "Create a secret handshake", "Make everyone laugh without talking", "Do your best chicken dance",
-    "Name 5 fruits in 10 seconds", "Pretend the floor is lava", "Give yourself a funny nickname",
-    "Tell a story using only 5 words", "Do a victory celebration", "Copy another player's pose",
-    "Make up a silly superhero name", "Freeze like a statue for 20 seconds", "Lead a silly group cheer"
+// Match Mode contains 25 adult challenges and 25 romantic/playful challenges.
+// The queue distributes all 50 exactly once before any challenge repeats.
+const adultChallenges = [
+    { text: "Kiss your partner's neck", shots: 2 }, { text: "Give a passionate kiss", shots: 2 },
+    { text: "Remove one item of clothing", shots: 3 }, { text: "Whisper something naughty", shots: 2 },
+    { text: "Nibble your partner's earlobe", shots: 2 }, { text: "Trace a finger along their back", shots: 2 },
+    { text: "Give a sensual 1-minute massage", shots: 2 }, { text: "Share a private fantasy", shots: 2 },
+    { text: "Spend 5 minutes in private together", shots: 3 }, { text: "Send each other a spicy text", shots: 2 },
+    { text: "Re-enact your first kiss", shots: 2 }, { text: "Give a slow, passionate kiss", shots: 2 },
+    { text: "Let your partner choose one item to remove", shots: 3 }, { text: "Give a playful bite on the shoulder", shots: 2 },
+    { text: "Whisper a seductive compliment", shots: 2 }, { text: "Hold a close embrace for 2 minutes", shots: 1 },
+    { text: "Give a gentle kiss on the inner wrist", shots: 2 }, { text: "Describe your most exciting date idea", shots: 2 },
+    { text: "Let your partner guide a blindfolded touch", shots: 3 }, { text: "Slow dance while staying very close", shots: 1 },
+    { text: "Give three kisses wherever your partner chooses", shots: 2 }, { text: "Share your favorite romantic fantasy", shots: 2 },
+    { text: "Give a shoulder and neck massage", shots: 2 }, { text: "Kiss your partner's forehead, then their lips", shots: 2 },
+    { text: "Choose a consensual intimate pose for a photo", shots: 2 },
+    { text: "Give a 1-minute massage", shots: 1 }, { text: "Hold hands for one minute", shots: 1 },
+    { text: "Share a favorite date idea", shots: 1 }, { text: "Slow dance together", shots: 1 },
+    { text: "Tell your partner what you admire", shots: 1 }, { text: "Give a gentle forehead kiss", shots: 1 },
+    { text: "Share a favorite romantic memory", shots: 1 }, { text: "Let your partner choose a song", shots: 1 },
+    { text: "Give a sincere compliment", shots: 1 }, { text: "Say three things you like about your partner", shots: 1 },
+    { text: "Make eye contact for 30 seconds", shots: 1 }, { text: "Plan an imaginary weekend getaway", shots: 1 },
+    { text: "Recreate a favorite photo pose", shots: 1 }, { text: "Share a harmless secret", shots: 1 },
+    { text: "Describe your perfect evening", shots: 1 }, { text: "Choose a nickname for your partner", shots: 1 },
+    { text: "Tell a funny dating story", shots: 1 }, { text: "Share a song that reminds you of them", shots: 1 },
+    { text: "Let your partner ask one question", shots: 1 }, { text: "Describe your ideal romantic dinner", shots: 1 },
+    { text: "Give a gentle cheek kiss", shots: 1 }, { text: "Share a dream for the future", shots: 1 },
+    { text: "Do a synchronized dance", shots: 1 }, { text: "Give a warm hug", shots: 1 },
+    { text: "Choose a non-alcohol reward", shots: 1 }
 ];
 
-const challengeCategories = {
-    all: funChallenges,
-    funny: [
-        "Talk like a robot for 30 seconds", "Pull your funniest face", "Act like a slow-motion movie star",
-        "Make everyone laugh without talking", "Do your best chicken dance", "Give yourself a funny nickname",
-        "Make up a silly superhero name", "Lead a silly group cheer"
-    ],
-    movement: [
-        "Do 5 star jumps", "Walk like a crab across the room", "Pretend the floor is lava",
-        "Do a victory celebration", "Freeze like a statue for 20 seconds", "Do your funniest dance"
-    ],
-    creative: [
-        "Create a secret handshake", "Tell a story using only 5 words", "Make up a silly superhero name",
-        "Name 5 fruits in 10 seconds", "Give yourself a funny nickname", "Draw an imaginary animal in the air"
-    ],
-    teamwork: [
-        "Copy another player's pose", "Lead a silly group cheer", "Create a secret handshake",
-        "Make everyone laugh without talking", "Choose someone to do a matching pose"
-    ]
-};
-
-const matchChallengeCategories = {
-    all: [
-        "{player} represents {team}! Make your funniest team pose!",
-        "{player} represents {team}! Make three animal sounds!",
-        "{player} represents {team}! Create a team cheer in 30 seconds!",
-        "{player} represents {team}! Have a funny dance!",
-        "{player} represents {team}! Name as many fruits as you can!",
-        "{player} represents {team}! Make your silliest face!",
-        "{player} represents {team}! Show your best superhero pose!",
-        "{player} represents {team}! Tell a funny 5-word story!"
-    ],
-    funny: [
-        "{player} represents {team}! Make three animal sounds!",
-        "{player} represents {team}! Make your silliest face!",
-        "{player} represents {team}! Perform your funniest pose!"
-    ],
-    movement: [
-        "{player} represents {team}! Have a funny dance!",
-        "{player} represents {team}! Do 5 star jumps!",
-        "{player} represents {team}! Perform a victory celebration!"
-    ],
-    creative: [
-        "{player} represents {team}! Create a team cheer in 30 seconds!",
-        "{player} represents {team}! Invent an imaginary superhero pose!",
-        "{player} represents {team}! Tell a funny 5-word story!"
-    ],
-    teamwork: [
-        "{player} represents {team}! Create a secret handshake for your team!",
-        "{player} represents {team}! Lead your team in a matching pose!",
-        "{player} represents {team}! Lead your team in a cheer!"
-    ]
-};
-
-const timedChallenges = new Map([
-    ["Talk like a robot for 30 seconds", 30],
-    ["Walk like a crab across the room", 20],
-    ["Do 5 star jumps", 20],
-    ["Freeze like a statue for 20 seconds", 20],
-    ["Do your funniest dance", 30],
-    ["Name 5 fruits in 10 seconds", 10]
-]);
-
-const matchTimedChallenges = new Map([
-    ["{player} represents {team}! Create a team cheer in 30 seconds!", 30],
-    ["{player} represents {team}! Name as many fruits as you can!", 30],
-    ["{player} represents {team}! Create a secret handshake for your team!", 30]
-]);
-
-function playSound(notes, duration = 0.12) {
-    if (!soundEnabled) return;
-
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    audioContext = audioContext || new AudioContext();
-    if (audioContext.state === 'suspended') audioContext.resume();
-
-    notes.forEach((frequency, index) => {
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        const startTime = audioContext.currentTime + index * duration;
-        oscillator.type = 'sine';
-        oscillator.frequency.value = frequency;
-        gain.gain.setValueAtTime(0.0001, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.18, startTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-        oscillator.start(startTime);
-        oscillator.stop(startTime + duration);
-    });
+function shuffledCopy(list) {
+    return [...list].sort(() => Math.random() - 0.5);
 }
 
-function toggleSound() {
-    soundEnabled = !soundEnabled;
-    const soundButton = document.getElementById('soundToggle');
-    soundButton.innerText = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
-    if (soundEnabled) playSound([523, 659, 784]);
-}
-
-function celebrate() {
-    const colors = ['#ff4081', '#ffd166', '#06d6a0', '#118ab2', '#8338ec'];
-    const container = document.getElementById('confetti');
-    container.innerHTML = '';
-    for (let i = 0; i < 36; i++) {
-        const piece = document.createElement('span');
-        piece.className = 'confetti-piece';
-        piece.style.left = `${Math.random() * 100}%`;
-        piece.style.backgroundColor = colors[i % colors.length];
-        piece.style.animationDelay = `${Math.random() * 0.5}s`;
-        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-        container.appendChild(piece);
-    }
-    setTimeout(() => { container.innerHTML = ''; }, 1800);
-}
-
-function stopTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    const timer = document.getElementById('challengeTimer');
-    if (timer) timer.style.display = 'none';
-}
-
-function startChallengeTimer(challenge) {
-    stopTimer();
-    const seconds = (mode === 'match' ? matchTimedChallenges : timedChallenges).get(challenge);
-    if (!seconds) return;
-
-    const timer = document.getElementById('challengeTimer');
-    let remaining = seconds;
-    timer.innerText = `⏱️ ${remaining}s`;
-    timer.style.display = 'block';
-    timerInterval = setInterval(() => {
-        remaining -= 1;
-        timer.innerText = `⏱️ ${remaining}s`;
-        if (remaining <= 0) {
-            stopTimer();
-            timer.innerText = '🎉 Time!';
-            timer.style.display = 'block';
-            playSound([784, 988, 1175], 0.12);
-        }
-    }, 1000);
+function nextFromQueue(source, queue) {
+    if (queue.length === 0) queue.push(...shuffledCopy(source));
+    return queue.shift();
 }
 
 // Navigation
@@ -196,26 +83,13 @@ function showPage(pageId) {
 // Mode Selection
 function setMode(selectedMode) {
     mode = selectedMode;
-    if (mode === 'match') {
-        matchRound = 0;
-        team1Score = 0;
-        team2Score = 0;
-    }
     
     // Apply the background class to the body
     document.body.classList.remove('single-mode', 'match-mode');
     document.body.classList.add(mode === 'single' ? 'single-mode' : 'match-mode');
 
     showPage('playerPage');
-    document.getElementById('spinnerTitle').innerText =
-        mode === 'match' ? 'Team 1 vs Team 2!' : 'Who will be selected?';
-    document.getElementById('challengeTitle').innerText =
-        mode === 'match' ? 'Team Challenge!' : 'Choose a Fun Challenge!';
-    document.getElementById('challengeInstructions').innerText =
-        mode === 'match'
-            ? 'Team 1 and Team 2 compete together. Pick one challenge box!'
-            : 'Pick one box. Remember: you can always skip.';
-    let title = mode === 'single' ? 'Enter Player Names (2-19 players)' : 'Enter Team 1 and Team 2 Players';
+    let title = mode === 'single' ? 'Enter Player Names (2-19 players)' : 'Enter Male & Female Names';
     document.getElementById('playerPageTitle').innerText = title;
     
     let container = document.getElementById('playerInputs');
@@ -225,18 +99,16 @@ function setMode(selectedMode) {
         for (let i = 0; i < 3; i++) addPlayerInput();
         container.innerHTML += `<div style="width:100%"><button onclick="addPlayerInput()">+ Add Player</button></div>`;
     } else {
-        container.innerHTML += `<div class="team-name-row"><label for="team1NameInput">Team 1 name:</label><input id="team1NameInput" type="text" value="Team 1" maxlength="24"></div>`;
-        container.innerHTML += `<div class="team-name-row"><label for="team2NameInput">Team 2 name:</label><input id="team2NameInput" type="text" value="Team 2" maxlength="24"></div>`;
-        container.innerHTML += `<div style="width:100%"><h3>Team 1:</h3><div id="maleInputs"></div><button onclick="addMaleInput()">+ Team 1 Player</button></div>`;
-        container.innerHTML += `<div style="width:100%"><h3>Team 2:</h3><div id="femaleInputs"></div><button onclick="addFemaleInput()">+ Team 2 Player</button></div>`;
+        container.innerHTML += `<div style="width:100%"><h3>Males:</h3><div id="maleInputs"></div><button onclick="addMaleInput()">+ Male</button></div>`;
+        container.innerHTML += `<div style="width:100%"><h3>Females:</h3><div id="femaleInputs"></div><button onclick="addFemaleInput()">+ Female</button></div>`;
         for (let i = 0; i < 2; i++) { addMaleInput(); addFemaleInput(); }
     }
 }
 
 // Input Helpers
 function addPlayerInput() { createInput('playerInput', 'playerInputs', 'Player'); }
-function addMaleInput() { createInput('maleInput', 'maleInputs', 'Team 1 player'); }
-function addFemaleInput() { createInput('femaleInput', 'femaleInputs', 'Team 2 player'); }
+function addMaleInput() { createInput('maleInput', 'maleInputs', 'Male'); }
+function addFemaleInput() { createInput('femaleInput', 'femaleInputs', 'Female'); }
 
 function createInput(cls, containerId, placeholder) {
     let container = document.getElementById(containerId);
@@ -257,138 +129,70 @@ function startGame() {
     females = Array.from(document.querySelectorAll('.femaleInput')).map(i => i.value.trim()).filter(v => v !== '');
 
     if (mode === 'single' && players.length < 2) return alert("Need at least 2 players");
-    if (mode === 'match' && (males.length < 1 || females.length < 1)) return alert("Each team needs at least one player");
+    if (mode === 'match' && (males.length < 1 || females.length < 1)) return alert("Need at least one of each");
 
-    if (mode === 'match') {
-        team1Name = document.getElementById('team1NameInput').value.trim() || 'Team 1';
-        team2Name = document.getElementById('team2NameInput').value.trim() || 'Team 2';
-        matchRound = 0;
-        team1Score = 0;
-        team2Score = 0;
-        updateScoreboard();
-    }
     playerQueue = [];
-    team1Queue = [];
-    team2Queue = [];
-    nextTeamIndex = Math.random() < 0.5 ? 0 : 1;
-    refillPlayerQueue();
-    updateTeamLabels();
+    maleQueue = [];
+    femaleQueue = [];
+    challengeQueue = [];
+    selectedPlayerNames = [];
+    excludedPlayers.clear();
     showPage('spinnerPage');
-}
-
-function refillPlayerQueue() {
-    if (mode === 'single') {
-        playerQueue = [...players.map(name => ({ name, label: name, teamName: '' }))]
-            .sort(() => Math.random() - 0.5);
-        return;
-    }
-
-    team1Queue = [...males.map(name => ({
-        name, label: `🔵 ${name} (${team1Name})`, teamName: team1Name
-    }))].sort(() => Math.random() - 0.5);
-    team2Queue = [...females.map(name => ({
-        name, label: `🔴 ${name} (${team2Name})`, teamName: team2Name
-    }))].sort(() => Math.random() - 0.5);
-}
-
-function getNextPlayer() {
-    if (mode === 'single') {
-        if (playerQueue.length === 0) refillPlayerQueue();
-        return playerQueue.shift();
-    }
-
-    const activeQueue = nextTeamIndex === 0 ? team1Queue : team2Queue;
-    if (activeQueue.length === 0) {
-        nextTeamIndex = nextTeamIndex === 0 ? 1 : 0;
-    }
-
-    const fallbackQueue = nextTeamIndex === 0 ? team2Queue : team1Queue;
-    const selected = (activeQueue.length ? activeQueue : fallbackQueue).shift();
-    nextTeamIndex = nextTeamIndex === 0 ? 1 : 0;
-    return selected;
-}
-
-function updateTeamLabels() {
-    document.getElementById('spinnerTitle').innerText =
-        mode === 'match' ? `${team1Name} vs ${team2Name}!` : 'Who will be selected?';
-    document.getElementById('challengeInstructions').innerText =
-        mode === 'match'
-            ? `${team1Name} and ${team2Name} compete together. ${selectedPlayer ? selectedPlayer.name : 'The selected player'} opens the challenge box!`
-            : 'Pick one box. Remember: you can always skip.';
-    document.getElementById('judgeInstructions').innerText = mode === 'match'
-        ? 'Facilitator: watch the challenge and award the point fairly. The teams do not judge each other.'
-        : '';
-    document.getElementById('team1PointButton').innerText = `${team1Name} Gets Point`;
-    document.getElementById('team2PointButton').innerText = `${team2Name} Gets Point`;
-}
-
-function personalizeChallenge(challenge) {
-    return challenge
-        .replaceAll('{team1}', team1Name)
-        .replaceAll('{team2}', team2Name)
-        .replaceAll('{team}', selectedPlayer ? selectedPlayer.teamName : team1Name)
-        .replaceAll('{player}', selectedPlayer ? selectedPlayer.name : 'the selected player');
-}
-
-function updateScoreboard() {
-    const scoreboard = document.getElementById('scoreboard');
-    if (!scoreboard) return;
-    scoreboard.innerText = `🔵 ${team1Name}: ${team1Score}    🔴 ${team2Name}: ${team2Score}`;
-}
-
-function updateRoundLabel() {
-    const roundLabel = document.getElementById('roundLabel');
-    if (roundLabel) {
-        roundLabel.innerText = mode === 'match'
-            ? `Challenge ${Math.min(matchRound + 1, totalMatchRounds)} of ${totalMatchRounds}`
-            : '';
-    }
 }
 
 // Spin the Bottle
 function spin() {
+    const bottle = document.getElementById('bottle');
     const selectedText = document.getElementById('selectedPlayer');
     const openBoxBtn = document.getElementById('openBoxBtn');
-    const namePicker = document.getElementById('namePicker');
-    const rollingName = document.getElementById('rollingName');
     
-    if (isSpinning) return;
-    isSpinning = true;
     openBoxBtn.style.display = 'none';
-    namePicker.classList.remove('winner');
     selectedText.innerText = "Spinning...";
-    playSound([392, 440, 494, 523], 0.08);
 
-    const selected = getNextPlayer();
-    selectedPlayer = selected;
-    const choices = playerQueue.length ? [...playerQueue, selected] : [selected];
-    let elapsed = 0;
-    let delay = 70;
+    const addedRotation = Math.floor(Math.random() * 3600) + 720;
+    currentRotation += addedRotation;
+    bottle.style.transform = `rotate(${currentRotation}deg)`;
 
-    const showNextName = () => {
-        const rollingChoice = choices[Math.floor(Math.random() * choices.length)];
-        rollingName.innerText = rollingChoice.label;
-        selectedText.innerText = `✨ ${rollingChoice.label} ✨`;
-        elapsed += delay;
-        delay = Math.min(delay + 12, 220);
+    const spinSound = document.getElementById('spinSound');
+    if(spinSound) {
+        spinSound.currentTime = 0;
+        spinSound.play();
+    }
 
-        if (elapsed >= 2600) {
-            clearTimeout(spinInterval);
-            selectedText.innerText = mode === 'single'
-                ? `⭐ ${selected.label} ⭐`
-                : `${selected.label} is selected!`;
-            rollingName.innerText = selected.label;
-            namePicker.classList.add('winner');
-            openBoxBtn.innerText = `${selected.name}: Open Your Challenge Box`;
-            openBoxBtn.style.display = 'inline-block';
-            isSpinning = false;
-            playSound([523, 659, 784, 1047], 0.14);
-            return;
+    setTimeout(() => {
+        let result = "";
+        if (mode === 'single') {
+            const player = nextEligiblePlayer(players, playerQueue);
+            selectedPlayerNames = [player];
+            result = `⭐ ${player} ⭐`;
+        } else {
+            const m = nextEligiblePlayer(males, maleQueue);
+            const f = nextEligiblePlayer(females, femaleQueue);
+            selectedPlayerNames = [m, f];
+            result = `💙 ${m} & 💖 ${f}`;
         }
-        spinInterval = setTimeout(showNextName, delay);
-    };
+        selectedText.innerText = result;
+        advanceExclusions();
+        openBoxBtn.style.display = 'inline-block';
+    }, 3000);
+}
 
-    showNextName();
+function advanceExclusions() {
+    excludedPlayers.forEach((rounds, name) => {
+        if (rounds <= 1) excludedPlayers.delete(name);
+        else excludedPlayers.set(name, rounds - 1);
+    });
+}
+
+function nextEligiblePlayer(source, queue) {
+    const available = source.filter(name => !excludedPlayers.has(name));
+    if (available.length === 0) {
+        return nextFromQueue(source, queue);
+    }
+
+    while (queue.length > 0 && excludedPlayers.has(queue[0])) queue.shift();
+    if (queue.length === 0) queue.push(...shuffledCopy(available));
+    return queue.shift();
 }
 
 // Challenge Grid
@@ -397,36 +201,20 @@ function setupChallenges() {
     canOpenBox = true;
     const container = document.getElementById('boxContainer');
     const continueBtn = document.getElementById('continueBtn');
-    const challengeActions = document.getElementById('challengeActions');
-    const challengeResult = document.getElementById('challengeResult');
+    const penaltyText = document.getElementById('penaltyText');
+    const skipChallengeBtn = document.getElementById('skipChallengeBtn');
     
     container.innerHTML = '';
     continueBtn.style.display = 'none';
-    challengeActions.style.display = 'none';
-    challengeResult.innerText = '';
-    stopTimer();
-    resultRecorded = false;
-    updateScoreboard();
-    updateRoundLabel();
-    updateTeamLabels();
-    document.getElementById('selectedRepresentative').innerText = mode === 'match'
-        ? `${selectedPlayer.name} from ${selectedPlayer.teamName} opens the challenge box and represents the team!`
-        : `${selectedPlayer.name} opens the challenge box for their challenge!`;
-    document.getElementById('openBoxBtn').innerText = `${selectedPlayer.name}: Open Your Challenge Box`;
-
-    const isMatch = mode === 'match';
-    document.getElementById('singleCompleteButton').style.display = isMatch ? 'none' : 'inline-block';
-    document.getElementById('team1PointButton').style.display = isMatch ? 'inline-block' : 'none';
-    document.getElementById('team2PointButton').style.display = isMatch ? 'inline-block' : 'none';
-    document.getElementById('bothPointButton').style.display = isMatch ? 'inline-block' : 'none';
-    document.getElementById('tryAnotherButton').style.display = isMatch ? 'none' : 'inline-block';
+    penaltyText.innerText = '';
+    skipChallengeBtn.style.display = 'none';
+    skipChallengeBtn.disabled = false;
+    closePenaltyModal();
 
     // --- PICK THE CORRECT LIST BASED ON MODE ---
-    const selectedCategory = document.getElementById('challengeCategory').value;
-    const activeCategories = mode === 'match' ? matchChallengeCategories : challengeCategories;
-    const activeList = activeCategories[selectedCategory] || activeCategories.all;
+    const activeList = (mode === 'single') ? singleChallenges : adultChallenges;
 
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < 50; i++) {
         let box = document.createElement('div');
         box.className = 'box';
         box.innerText = '?';
@@ -436,113 +224,105 @@ function setupChallenges() {
                 this.classList.add('opened');
                 
                 // Select random challenge from the active list
-                            const challengeTemplate = activeList[Math.floor(Math.random() * activeList.length)];
-                            const challenge = personalizeChallenge(challengeTemplate);
-                            this.innerText = challenge;
-                document.getElementById('challengeResult').innerText = challenge;
-                document.getElementById('challengeActions').style.display = 'flex';
-                startChallengeTimer(challengeTemplate);
+                selectedChallenge = nextFromQueue(activeList, challengeQueue);
+                this.innerText = selectedChallenge.text;
+                skipChallengeBtn.style.display = 'inline-block';
                 
                 canOpenBox = false; 
                 continueBtn.style.display = 'block'; 
                 document.querySelectorAll('.box').forEach(b => {
                     if(!b.classList.contains('opened')) b.classList.add('disabled');
                 });
-                playSound([659, 784, 988], 0.13);
+                const boxSound = document.getElementById('boxSound');
+                if(boxSound) {
+                    boxSound.currentTime = 0;
+                    boxSound.play();
+                }
             }
         };
         container.appendChild(box);
     }
 }
 
-function nextRound() {
-    stopTimer();
-    if (mode === 'match' && matchRound >= totalMatchRounds) {
-        showFinalScore();
-        return;
-    }
-    document.getElementById('selectedPlayer').innerText = '';
-    document.getElementById('selectedRepresentative').innerText = '';
-    document.getElementById('openBoxBtn').style.display = 'none';
-    document.getElementById('openBoxBtn').innerText = 'Open Your Challenge Box';
-    showPage('spinnerPage');
+function showPenaltyModal() {
+    if (!selectedChallenge) return;
+
+    const shots = selectedChallenge.shots;
+    const playerSelect = document.getElementById('banPlayerSelect');
+    playerSelect.innerHTML = '';
+    selectedPlayerNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.innerText = name;
+        playerSelect.appendChild(option);
+    });
+    updatePenaltyMessage(shots, playerSelect.value);
+    playerSelect.onchange = () => updatePenaltyMessage(shots, playerSelect.value);
+    document.getElementById('penaltyModal').classList.add('visible');
+    document.getElementById('penaltyModal').setAttribute('aria-hidden', 'false');
 }
 
-function tryAnotherChallenge() {
-    stopTimer();
-    setupChallenges();
+function updatePenaltyMessage(shots, playerName) {
+    document.getElementById('penaltyMessage').innerText =
+        `This challenge has a ${shots}-shot penalty. If ${playerName} for example refuses, the computer will randomly choose one consequence.`;
 }
 
-function skipChallenge() {
-    playSound([330, 262], 0.16);
-    if (mode === 'match') {
-        recordMatchResult('none');
-        return;
-    }
-    tryAnotherChallenge();
+function closePenaltyModal() {
+    const modal = document.getElementById('penaltyModal');
+    if (!modal) return;
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
 }
 
-function completeChallenge() {
-    stopTimer();
-    document.getElementById('challengeResult').innerText = '🌟 Amazing job! 🌟';
-    playSound([523, 659, 784, 1047], 0.12);
-}
+function takePenalty() {
+    if (!selectedChallenge) return;
 
-function recordMatchResult(result) {
-    if (mode !== 'match' || resultRecorded) return;
-
-    resultRecorded = true;
-    if (result === 'team1' || result === 'both') team1Score += 1;
-    if (result === 'team2' || result === 'both') team2Score += 1;
-    matchRound += 1;
-    canOpenBox = false;
-    stopTimer();
-    updateScoreboard();
-
-    const challengeActions = document.getElementById('challengeActions');
-    challengeActions.style.display = 'none';
-    document.getElementById('continueBtn').innerText =
-        matchRound >= totalMatchRounds ? 'See Final Score' : 'Next Challenge';
+    const shots = selectedChallenge.shots;
+    document.getElementById('penaltyText').innerText =
+        `Penalty accepted: ${shots} shot${shots === 1 ? '' : 's'}.`;
+    document.getElementById('skipChallengeBtn').disabled = true;
     document.getElementById('continueBtn').style.display = 'block';
-    document.getElementById('challengeResult').innerText =
-        result === 'none' ? 'No point this round.' : 'Point recorded! 🌟';
-    if (result !== 'none') celebrate();
-    playSound(result === 'none' ? [330, 262] : [523, 659, 784], 0.12);
+    closePenaltyModal();
 }
 
-function showFinalScore() {
-    const winnerText = team1Score === team2Score
-        ? "It's a tie! Both teams were amazing! 🤝"
-        : team1Score > team2Score
-            ? `🔵 ${team1Name} wins! Congratulations! 🎉`
-            : `🔴 ${team2Name} wins! Congratulations! 🎉`;
-    document.getElementById('finalScore').innerText =
-        `${team1Name}: ${team1Score} points  •  ${team2Name}: ${team2Score} points`;
-    document.getElementById('winnerText').innerText = winnerText;
-    showPage('finalPage');
-    celebrate();
-    playSound([523, 659, 784, 1047], 0.14);
+function randomizeRefusal() {
+    const playerName = document.getElementById('banPlayerSelect').value;
+    if (!playerName) return;
+
+    const consequence = Math.random() < 0.5 ? 'item' : 'sitOut';
+    const message = consequence === 'item'
+        ? `${playerName} must voluntarily give up one personal item permanently. The item is not returned.`
+        : `${playerName} will sit out for the next 15 rounds.`;
+
+    if (!confirm(`${message}\n\nConfirm that ${playerName} agrees to this consequence?`)) return;
+
+    if (consequence === 'sitOut') excludedPlayers.set(playerName, 15);
+    document.getElementById('penaltyText').innerText = message;
+    document.getElementById('skipChallengeBtn').disabled = true;
+    document.getElementById('continueBtn').style.display = 'block';
+    closePenaltyModal();
+}
+
+function nextRound() {
+    document.getElementById('selectedPlayer').innerText = '';
+    document.getElementById('openBoxBtn').style.display = 'none';
+    selectedChallenge = null;
+    selectedPlayerNames = [];
+    closePenaltyModal();
+    showPage('spinnerPage');
 }
 
 function resetToHome() {
     if (confirm("Are you sure you want to reset? This will delete all names.")) {
         players = []; males = []; females = [];
-        selectedPlayer = null;
-        playerQueue = [];
-        team1Queue = [];
-        team2Queue = [];
-        nextTeamIndex = 0;
-        team1Name = 'Team 1';
-        team2Name = 'Team 2';
-        clearTimeout(spinInterval);
-        isSpinning = false;
-        matchRound = 0;
-        team1Score = 0;
-        team2Score = 0;
-        stopTimer();
+        playerQueue = []; maleQueue = []; femaleQueue = []; challengeQueue = [];
+        selectedChallenge = null;
+        selectedPlayerNames = [];
+        excludedPlayers.clear();
+        closePenaltyModal();
+        currentRotation = 0;
+        document.getElementById('bottle').style.transform = `rotate(0deg)`;
         document.getElementById('selectedPlayer').innerText = "";
-        document.getElementById('rollingName').innerText = "Ready?";
-        document.getElementById('namePicker').classList.remove('winner');
         document.getElementById('openBoxBtn').style.display = 'none';
         document.body.classList.remove('single-mode', 'match-mode');
         showPage('startPage');

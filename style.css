@@ -25,11 +25,6 @@ button {
 
 button:hover { filter: brightness(1.1); transform: translateY(-2px); }
 
-button:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 3px solid #212529;
-    outline-offset: 3px;
-}
-
 input { 
     padding: 10px; 
     margin: 5px; 
@@ -39,79 +34,18 @@ input {
     background: rgba(255, 255, 255, 0.9); /* Makes inputs readable on photos */
 }
 
-select {
-    padding: 10px 14px;
-    margin: 10px;
-    font-size: 16px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    background: white;
-}
-
-.safety-card {
-    max-width: 460px;
-    margin: 0 auto 20px;
-    padding: 16px 20px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #343a40;
-    font-size: 18px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-.safety-card p {
-    margin: 8px 0 0;
-}
-
-.team-name-row {
-    width: min(100%, 420px);
-    margin: 8px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.team-name-row label {
-    font-weight: bold;
-}
-
 /* Spinner Page */
-#namePicker {
-    width: min(90%, 520px);
-    min-height: 170px;
+#bottleContainer {
+    width: 180px;
+    height: 180px;
     margin: 30px auto;
-    padding: 24px 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    box-sizing: border-box;
-    border: 6px solid #7b2cbf;
-    border-radius: 28px;
-    background: linear-gradient(135deg, #ffd166, #ff70a6, #7b2cbf);
-    box-shadow: 0 8px 0 #4c1d95, 0 14px 24px rgba(0, 0, 0, 0.2);
-    color: white;
-    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+    position: relative;
 }
 
-#rollingName {
+#bottle {
     width: 100%;
-    overflow-wrap: anywhere;
-    font-size: clamp(28px, 7vw, 48px);
-    font-weight: 800;
-    animation: nameBounce 0.45s ease-in-out infinite alternate;
-}
-
-.picker-stars {
-    font-size: 28px;
-    letter-spacing: 8px;
-}
-
-#namePicker.winner {
-    animation: winnerPop 0.8s ease-out;
+    height: 100%;
+    transition: transform 3s cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 #selectedPlayer {
@@ -122,28 +56,6 @@ select {
     font-weight: bold;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     animation: popIn 0.5s ease-out;
-}
-
-.selected-representative {
-    max-width: 700px;
-    margin: 0 auto 12px;
-    padding: 10px 16px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #212529;
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.judge-instructions {
-    max-width: 720px;
-    margin: 8px auto 14px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: rgba(255, 248, 220, 0.95);
-    color: #5c4400;
-    font-size: 16px;
-    font-weight: 600;
 }
 
 /* Challenge Page Grid */
@@ -174,7 +86,6 @@ select {
     font-size: 14px;
     padding: 10px;
     text-align: center;
-    line-height: 1.2;
 }
 
 .box.opened { 
@@ -189,6 +100,117 @@ select {
     cursor: default;
 }
 
+.box.opened {
+    overflow-wrap: anywhere;
+}
+
+.penalty-text {
+    min-height: 24px;
+    max-width: 680px;
+    margin: 10px auto;
+    font-weight: bold;
+    color: #6f1d75;
+}
+
+.skip-challenge-btn {
+    background: transparent;
+    color: #6f1d75;
+    border: 1px solid rgba(111, 29, 117, 0.35);
+    font-size: 14px;
+    padding: 8px 16px;
+    margin-top: 2px;
+}
+
+.skip-challenge-btn:hover {
+    background: rgba(111, 29, 117, 0.1);
+    transform: none;
+}
+
+#skipChallengeBtn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(25, 12, 35, 0.45);
+}
+
+.modal-backdrop.visible {
+    display: flex;
+}
+
+.penalty-modal {
+    position: relative;
+    width: min(420px, 100%);
+    padding: 28px;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+    animation: popIn 0.2s ease-out;
+}
+
+.penalty-modal h2 {
+    margin-top: 0;
+}
+
+.penalty-modal p {
+    line-height: 1.5;
+}
+
+.ban-player-label {
+    display: block;
+    margin: 18px 0 6px;
+    font-weight: bold;
+    color: #54205b;
+}
+
+.ban-player-select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #d5bfd9;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+}
+
+.modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    margin: 0;
+    padding: 4px 10px;
+    background: transparent;
+    color: #555;
+    font-size: 26px;
+}
+
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.modal-actions button {
+    margin: 4px;
+    font-size: 15px;
+}
+
+.modal-actions .safe-option {
+    background: #607d8b;
+}
+
+.modal-actions .sit-out-option {
+    background: #795548;
+}
+
 #continueBtn {
     display: none; 
     padding: 15px 40px;
@@ -201,115 +223,17 @@ select {
     cursor: pointer;
 }
 
-.challenge-result {
-    min-height: 32px;
-    max-width: 700px;
-    margin: 18px auto 8px;
-    color: #212529;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.scoreboard, .round-label {
-    display: inline-block;
-    margin: 8px auto;
-    padding: 10px 18px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #212529;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.round-label {
-    display: block;
-    width: fit-content;
-    font-size: 18px;
-}
-
-.challenge-timer {
-    display: none;
-    width: fit-content;
-    margin: 8px auto;
-    padding: 8px 18px;
-    border-radius: 999px;
-    background: #212529;
-    color: white;
-    font-size: 22px;
-    font-weight: bold;
-}
-
-.challenge-actions {
-    display: none;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.secondary-button {
-    background: #6c757d;
-}
-
-.success-button {
-    background: #28a745;
-}
-
-.team1-button {
-    background: #1976d2;
-}
-
-.team2-button {
-    background: #d32f2f;
-}
-
-.final-score, .winner-text {
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 18px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.92);
-    color: #212529;
-    font-size: 26px;
-    font-weight: bold;
-}
-
-.winner-text {
-    font-size: 24px;
-}
-
-#confetti {
-    position: fixed;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.confetti-piece {
-    position: absolute;
-    top: -20px;
-    width: 10px;
-    height: 18px;
-    animation: confettiFall 1.8s ease-in forwards;
-}
-
-@keyframes confettiFall {
-    to {
-        top: 105vh;
-        transform: translateY(0) rotate(720deg);
-    }
-}
-
 /* --- THE BACKGROUNDS (APPLIED TO BODY) --- */
 
 body.single-mode {
     background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), 
-                url('./picture/teamwork.jpg') no-repeat center center fixed !important;
+                url('picture/sPicture.png') no-repeat center center fixed !important;
     background-size: cover !important;
 }
 
 body.match-mode {
     background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), 
-                url('./picture/match.webp') no-repeat center center fixed !important;
+                url('picture/matchP.webp') no-repeat center center fixed !important;
     background-size: cover !important;
 }
 
@@ -325,15 +249,4 @@ h1, h2, h3, #playerPageTitle {
 @keyframes popIn {
     0% { transform: scale(0.5); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes nameBounce {
-    from { transform: scale(0.98) rotate(-1deg); }
-    to { transform: scale(1.02) rotate(1deg); }
-}
-
-@keyframes winnerPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.08) rotate(-2deg); }
-    100% { transform: scale(1); }
 }
